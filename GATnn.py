@@ -15,13 +15,17 @@ class TransformationGAT(torch.nn.Module):
         self.transformation_fc = torch.nn.Linear(hidden_channels * heads, transformation_dim)
 
     def forward(self, data, enzyme_encoding, substrate_encoding):
+        enzyme_encoding = F.elu(self.gat_conv1(enzyme_encoding, edge_index))
+        enzyme_encoding = F.dropout(enzyme_encoding, training=self.training)
+        enzyme_encoding = F.elu(self.gat_conv2(enzyme_encoding, edge_index))
+
+        substrate_encoding = F.elu(self.gat_conv1(substrate_encoding, edge_index))
+        substrate_encoding = F.dropout(substrate_encoding, training=self.training)
+        substrate_encoding = F.elu(self.gat_conv2(substrate_encoding, edge_index))
+
         combined_encoding = torch.cat([enzyme_encoding, substrate_encoding], dim=1)
         x = combined_encoding
         edge_index = data.edge_index
-
-        x = F.elu(self.gat_conv1(x, edge_index))
-        x = F.dropout(x, training=self.training)
-        x = F.elu(self.gat_conv2(x, edge_index))
 
         global_representation = torch.mean(x, dim=0, keepdim=True)
 
