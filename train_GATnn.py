@@ -24,24 +24,21 @@ transformer_model.eval()
 model = TransformationGAT(vae.decoder, input_dim=768, hidden_channels=128, transformation_dim=256, heads=4)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Define a suitable loss function
 criterion = torch.nn.MSELoss()
 
-# Training loop
 num_epochs = 100
 for epoch in range(num_epochs):
     total_loss = 0
     for data in train_loader:
         optimizer.zero_grad()
 
-        # Encode the enzyme sequence using the Transformer
+        # encode enzyme
         enzyme_tokens = tokenizer(data.enzyme_sequence, return_tensors="pt")
         enzyme_encoding = transformer_model(**enzyme_tokens).last_hidden_state.mean(dim=1)
 
-        # Encode the substrate molecule using the VAE
+        # encode molecule
         substrate_encoding = vae.encode(data.x)
 
-        # Get the predicted molecule from the GAT model
         predicted_molecule = model(data, enzyme_encoding, substrate_encoding)
 
         # encode the true product
@@ -59,20 +56,15 @@ model.eval()
 test_loss = 0
 with torch.no_grad():
     for data in test_loader:
-        # Encode the enzyme sequence using the Transformer
         enzyme_tokens = tokenizer(data.enzyme_sequence, return_tensors="pt")
         enzyme_encoding = transformer_model(**enzyme_tokens).last_hidden_state.mean(dim=1)
 
-        # Encode the substrate molecule using the VAE
         substrate_encoding = vae.encode(data.x)
 
-        # Get the predicted molecule from the GAT model
         predicted_molecule = model(data, enzyme_encoding, substrate_encoding)
 
-        # The true product molecule can be encoded using the VAE
         true_product_encoding = vae.encode(data.y)
 
-        # Compute the loss
         loss = criterion(predicted_molecule, true_product_encoding)
         test_loss += loss.item()
 
